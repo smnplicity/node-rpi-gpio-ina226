@@ -26,15 +26,17 @@ export default class INA226 extends EventEmitter {
   }
 
   connectAsync = async () => {
-    const i2cBus = openSync(1);
-
-    const ina = new UnderlyingINA226(
-      i2cBus,
-      this.options.address,
-      this.options.rShunt
-    );
+    let ina: UnderlyingINA226;
 
     try {
+      const i2cBus = openSync(1);
+
+      ina = new UnderlyingINA226(
+        i2cBus,
+        this.options.address,
+        this.options.rShunt
+      );
+
       await ina.writeRegister(CONFIGURATION_REGISTER, 0x4427);
     } catch (e) {
       this.emit("error", e);
@@ -91,7 +93,7 @@ export default class INA226 extends EventEmitter {
     channel: "change" | "error" | "debug",
     listener: (...args: any[]) => void
   ) => {
-    this.on(channel, listener);
+    super.on(channel, listener);
 
     return this;
   };

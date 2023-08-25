@@ -20,5 +20,5 @@ const ina226 = new INA226({ address: 0x40, rShunt: 0.1 })
   .on("change", (data: Ina226DataChange) => {
 
   })
-  .connect();
+  .connectAsync();
 ```
