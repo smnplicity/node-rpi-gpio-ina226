@@ -1,11 +1,24 @@
 import EventEmitter from "events";
 
 import { openSync } from "i2c-bus";
-import { CONFIGURATION_REGISTER, INA226 as UnderlyingINA226 } from "ina226";
+import {
+  CALIBRATION_REGISTER,
+  CONFIGURATION_REGISTER,
+  DIE_ID_REGISTER,
+  MANUFACTOR_ID_REGISTER,
+  INA226 as UnderlyingINA226,
+} from "ina226";
 
 interface Options {
   address: number;
   rShunt: number;
+  maxMa: number;
+}
+
+export interface Ina226ConnectInfo {
+  manufacturerId: number;
+  dieId: number;
+  configuration: number;
 }
 
 export interface Ina226DataChange {
@@ -25,7 +38,22 @@ export default class INA226 extends EventEmitter {
     this.options = opts;
   }
 
-  connectAsync = async () => {
+  connect = () => {
+    this.connectAsync();
+
+    return this;
+  };
+
+  on = (
+    channel: "connect" | "change" | "error" | "debug",
+    listener: (...args: any[]) => void
+  ) => {
+    super.on(channel, listener);
+
+    return this;
+  };
+
+  private connectAsync = async () => {
     let ina: UnderlyingINA226;
 
     try {
@@ -37,7 +65,21 @@ export default class INA226 extends EventEmitter {
         this.options.rShunt
       );
 
-      await ina.writeRegister(CONFIGURATION_REGISTER, 0x4427);
+      await ina.writeRegister(CONFIGURATION_REGISTER, 0x8000);
+      await ina.writeRegister(CONFIGURATION_REGISTER, 0x4527);
+      await ina.writeRegister(CALIBRATION_REGISTER, this.options.maxMa);
+
+      const manufacturerId = await ina.readRegister(MANUFACTOR_ID_REGISTER);
+      const dieId = await ina.readRegister(DIE_ID_REGISTER);
+      const configuration = await ina.readRegister(CONFIGURATION_REGISTER);
+
+      const connectInfo: Ina226ConnectInfo = {
+        manufacturerId,
+        dieId,
+        configuration,
+      };
+
+      this.emit("connect", connectInfo);
     } catch (e) {
       this.emit("error", e);
       return;
@@ -85,17 +127,6 @@ export default class INA226 extends EventEmitter {
     };
 
     poll();
-
-    return this;
-  };
-
-  on = (
-    channel: "change" | "error" | "debug",
-    listener: (...args: any[]) => void
-  ) => {
-    super.on(channel, listener);
-
-    return this;
   };
 
   private round = (value: number, precision: number) =>
