@@ -10,8 +10,9 @@ npm i @node-rpi-gpio/ina226
 
 ## Usage
 ### Options
-address: The I2C address that is connected to the INA226
-rShunt: The shunt resistance value
+address: The I2C address that is connected to the INA226.
+
+rShunt: The shunt resistance value.
 
 ### Subscribe to data change events
 
